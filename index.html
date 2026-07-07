@@ -5,48 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Подготовка на данни за заплати</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script src="core.js"></script>
 <style>
   :root { --b:#2563eb; --bg:#f8fafc; --line:#e2e8f0; --warn:#b45309; --err:#b91c1c; --okc:#15803d; }
   * { box-sizing:border-box; }
   body { font-family:Arial,'Segoe UI',sans-serif; margin:0; background:var(--bg); color:#0f172a; }
-  .wrap { max-width:980px; margin:0 auto; padding:24px 16px 64px; }
+  .wrap { max-width:1020px; margin:0 auto; padding:24px 16px 64px; }
   h1 { font-size:26px; margin:8px 0 4px; }
   h2 { font-size:18px; margin:0 0 12px; }
+  h3 { font-size:14px; margin:16px 0 8px; color:#334155; border-bottom:1px solid var(--line); padding-bottom:4px; }
   .sub { color:#475569; margin:0 0 20px; }
   .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin-bottom:18px; }
   .privacy { border-left:4px solid var(--okc); }
   ol.steps { margin:8px 0 0; padding-left:22px; }
   ol.steps li { margin-bottom:8px; line-height:1.45; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:14px; }
   label.f { display:block; font-size:13px; font-weight:bold; margin-bottom:4px; }
   .hint { font-size:12px; color:#64748b; font-weight:normal; }
   input[type=number], input[type=text], select { width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; font-size:14px; background:#fff; }
-  .files { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
-  .drop { border:2px dashed var(--line); border-radius:10px; padding:16px; text-align:center; background:#fbfdff; }
+  .files { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
+  .drop { border:2px dashed var(--line); border-radius:10px; padding:14px; text-align:center; background:#fbfdff; }
   .drop.ok { border-color:var(--okc); background:#f0fdf4; }
-  .drop input { margin-top:8px; }
+  .drop input { margin-top:8px; max-width:100%; }
   .fname { font-size:13px; color:var(--okc); font-weight:bold; margin-top:6px; word-break:break-all; }
   button.go { background:var(--b); color:#fff; border:0; border-radius:8px; padding:12px 28px; font-size:16px; cursor:pointer; }
   button.go:disabled { background:#94a3b8; cursor:not-allowed; }
-  button.dl { background:#fff; color:var(--b); border:1px solid var(--b); border-radius:6px; padding:7px 14px; font-size:13px; cursor:pointer; margin-right:8px; }
+  button.dl { background:#fff; color:var(--b); border:1px solid var(--b); border-radius:6px; padding:7px 14px; font-size:13px; cursor:pointer; margin:2px 8px 2px 0; }
   .status-ok { color:var(--okc); font-weight:bold; }
   .status-warn { color:var(--warn); font-weight:bold; }
   .status-err { color:var(--err); font-weight:bold; }
   ul.msgs { margin:6px 0; padding-left:20px; font-size:13px; max-height:260px; overflow:auto; }
   ul.msgs li { margin-bottom:3px; }
-  table.prev { border-collapse:collapse; font-size:12px; width:100%; overflow:auto; display:block; }
+  table.prev { border-collapse:collapse; font-size:12px; width:100%; overflow:auto; display:block; max-height:420px; }
   table.prev th, table.prev td { border:1px solid var(--line); padding:4px 7px; white-space:nowrap; }
-  table.prev th { background:#f1f5f9; }
+  table.prev th { background:#f1f5f9; position:sticky; top:0; }
+  details.adv > summary { cursor:pointer; font-weight:bold; font-size:15px; padding:6px 0; color:var(--b); }
   details summary { cursor:pointer; font-weight:bold; font-size:14px; margin:6px 0; }
-  .cbrow { display:flex; gap:18px; flex-wrap:wrap; font-size:14px; align-items:center; }
+  .cbrow { display:flex; gap:16px; flex-wrap:wrap; font-size:14px; align-items:center; margin-top:4px; }
   .note { font-size:12px; color:var(--warn); margin-top:4px; display:none; }
+  .badge { display:inline-block; font-size:11px; background:#e2e8f0; border-radius:8px; padding:1px 8px; margin-left:6px; color:#475569; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Подготовка на данни за заплати</h1>
-  <p class="sub">Отчет за производителност + счетоводен отчет &rarr; един чист Excel файл с изчислени бонуси + статус файл с всички проверки.</p>
+  <h1>Подготовка на данни за заплати <span class="badge">v2</span></h1>
+  <p class="sub">Производителност + ведомост + присъствия &rarr; един Excel файл, готов за изчисляване на заплатите + статус файл с всички проверки.</p>
 
   <div class="card privacy">
     <b>Поверителност:</b> всички изчисления се извършват само във вашия браузър. Файловете не се качват на никакъв сървър и не напускат този компютър.
@@ -55,13 +59,14 @@
   <div class="card">
     <h2>Какво прави обработката (стъпка по стъпка)</h2>
     <ol class="steps">
-      <li><b>Прочита отчета за производителност (Файл 1).</b> Разпознава блоковете по служители, дати и операции. Премахва техническите редове от странирането на отчета (номера на страници, повтарящи се заглавия, дата/час на печат).</li>
-      <li><b>Поправя числовите формати.</b> Текстови проценти като &bdquo;96,55%&ldquo; и текстови суми със запетая стават истински числа; заработката по операции, записана &times;1000 (напр. 33079 вместо 33,079 лв), се коригира автоматично (мащабът се засича чрез сверка с дневните суми).</li>
-      <li><b>Преизчислява % от нормата за всеки ред</b> от БРОЙ &divide; НОРМА, вместо да се доверява на текста в отчета. Всяко разминаване с отчета се записва в статус файла.</li>
-      <li><b>Изчислява бонуса по конфигурируемото правило</b> (по подразбиране: ако дневният % от нормата е строго над 101%, бонус = 10% от дневната заработка) и сумира по служители за месеца.</li>
-      <li><b>Прочита счетоводния отчет (Файл 2)</b> и конвертира текстовите числа с десетична точка в истински числа &mdash; стъпката &bdquo;файл 4.1&ldquo; (смяна на точки със запетаи) отпада.</li>
-      <li><b>Съпоставя служителите по име</b> между двата файла. Всеки служител, който присъства само в единия файл, се записва като предупреждение.</li>
-      <li><b>Сверява всичко срещу самия отчет:</b> дневни суми, месечни суми и контролни суми на счетоводния отчет. Резултатът е два файла: <b>резултат (.xlsx)</b> и <b>статус (.txt или .json)</b> с всички проверки, предупреждения и грешки.</li>
+      <li><b>Прочита отчета за производителност (Файл 1).</b> Разпознава блоковете по служители/дати/операции, премахва техническите редове от странирането и поправя числовите формати (текстови проценти, запетаи, мащаб &times;1000).</li>
+      <li><b>Преизчислява % от нормата</b> от БРОЙ &divide; НОРМА за всеки ред и сверява всяка дневна и месечна сума срещу самия отчет.</li>
+      <li><b>Изчислява бонуса по конфигурируемото правило</b> (по подразбиране: дневен % строго над 101% &rarr; бонус 10% от дневната заработка).</li>
+      <li><b>Прочита ведомостта (Файл 2)</b> и конвертира текстовите числа &mdash; стъпката &bdquo;файл 4.1&ldquo; отпада.</li>
+      <li><b>Прочита присъствената форма (Файл 3, &bdquo;НОРМА МЕНИДЖЪР&ldquo;).</b> Слепва разделените по страници дни в един ред на служител, сумира минутите и ги <b>дели на 480 (конфигурируемо) за приравняване към работни дни</b> &mdash; колонката, която досега счетоводството изготвя ръчно. Съботите/неделите могат да се включват или изключват от сумата и се отчитат в отделни колони.</li>
+      <li><b>Съпоставя служителите по име</b> между трите файла и проверява: заработка без присъствие за деня, присъствени дни срещу отработени дни по ведомост, липсващи/дублирани служители.</li>
+      <li><b>Сглобява лист &bdquo;За заплати&ldquo;</b> &mdash; по един ред на служител с всичко необходимо: заработка, бонус, присъствие (минути и работни дни), данните от ведомостта и колона &bdquo;Проверки&ldquo;.</li>
+      <li><b>Генерира статус</b> като текст, JSON или <b>Excel файл, в който всяко съобщение (грешка, предупреждение, информация) е на отделен ред</b> с тип и категория &mdash; удобно за филтриране.</li>
     </ol>
   </div>
 
@@ -70,24 +75,30 @@
     <div class="files">
       <div class="drop" id="drop1">
         <b>Файл 1 &mdash; производителност</b><br>
-        <span class="hint">отчетът &bdquo;АНАЛИЗ ПРОИЗВОДИТЕЛНОСТ НА РАБОТНИЦИ&ldquo; (.xls / .xlsx)</span><br>
+        <span class="hint">&bdquo;АНАЛИЗ ПРОИЗВОДИТЕЛНОСТ НА РАБОТНИЦИ&ldquo; (.xls/.xlsx) &mdash; задължителен</span><br>
         <input type="file" id="file1" accept=".xls,.xlsx">
         <div class="fname" id="fname1"></div>
       </div>
       <div class="drop" id="drop2">
-        <b>Файл 2 &mdash; счетоводен отчет</b> <span class="hint">(незадължителен)</span><br>
-        <span class="hint">отчетът &bdquo;ОСНОВНА ЗАПЛАТА&ldquo; (.xls / .xlsx)</span><br>
+        <b>Файл 2 &mdash; ведомост</b> <span class="hint">(незадължителен)</span><br>
+        <span class="hint">&bdquo;ОСНОВНА ЗАПЛАТА&ldquo; (.xls/.xlsx)</span><br>
         <input type="file" id="file2" accept=".xls,.xlsx">
         <div class="fname" id="fname2"></div>
+      </div>
+      <div class="drop" id="drop3">
+        <b>Файл 3 &mdash; присъствия</b> <span class="hint">(незадължителен)</span><br>
+        <span class="hint">&bdquo;ПРИСЪСТВЕНА ФОРМА&ldquo; от НОРМА МЕНИДЖЪР (.xls/.xlsx)</span><br>
+        <input type="file" id="file3" accept=".xls,.xlsx">
+        <div class="fname" id="fname3"></div>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2>2. Настройки</h2>
+    <h2>2. Основни настройки</h2>
     <div class="grid">
       <div>
-        <label class="f">Праг за бонус (% от норма) <span class="hint">бонус само при дневен % СТРОГО над прага</span></label>
+        <label class="f">Праг за бонус (% от норма) <span class="hint">бонус при дневен % СТРОГО над прага</span></label>
         <input type="number" id="cfgThreshold" value="101" step="0.01" min="0">
       </div>
       <div>
@@ -95,42 +106,14 @@
         <input type="number" id="cfgRate" value="10" step="0.1" min="0">
       </div>
       <div>
-        <label class="f">Ниво на изчисление на бонуса</label>
-        <select id="cfgLevel">
-          <option value="day" selected>На ден (както при ръчното изчисление)</option>
-          <option value="operation">На операция</option>
-          <option value="both">И двете (възпроизвежда вътрешния инструмент)</option>
-        </select>
-        <div class="note" id="noteBoth">Внимание: &bdquo;И двете&ldquo; брои едно и също преизпълнение два пъти (както прави вътрешният инструмент) &mdash; използвайте само за сравнение.</div>
-      </div>
-      <div>
-        <label class="f">Дневна заработка се взема от <span class="hint">операциите дават 3 знака точност; отчетът &mdash; 2</span></label>
-        <select id="cfgSource">
-          <option value="operations" selected>Сумата на операциите (по-прецизно)</option>
-          <option value="report">Дневните суми на отчета (както при ръчното)</option>
-        </select>
-      </div>
-      <div>
-        <label class="f">Закръгляване на резултатите</label>
-        <select id="cfgRound">
-          <option value="2">2 знака (стотинки)</option>
-          <option value="3">3 знака</option>
-          <option value="4">4 знака</option>
-          <option value="-1" selected>Без закръгляване (максимална точност)</option>
-        </select>
-      </div>
-      <div>
-        <label class="f">Толеранс при сверка на % <span class="hint">над това разминаване се записва предупреждение</span></label>
-        <input type="number" id="cfgTolPct" value="0.05" step="0.01" min="0">
-      </div>
-      <div>
-        <label class="f">Толеранс при сверка на суми (лв)</label>
-        <input type="number" id="cfgTolEarn" value="0.02" step="0.01" min="0">
+        <label class="f">Пълен работен ден (минути) <span class="hint">делител за приравняване на присъствието</span></label>
+        <input type="number" id="cfgFullDay" value="480" step="1" min="1">
       </div>
       <div>
         <label class="f">Формат на статус файла</label>
         <select id="cfgStatusFmt">
-          <option value="txt" selected>Текст (.txt)</option>
+          <option value="xlsx" selected>Excel (.xlsx) &mdash; всяко съобщение на отделен ред</option>
+          <option value="txt">Текст (.txt)</option>
           <option value="json">JSON (.json)</option>
         </select>
       </div>
@@ -139,59 +122,145 @@
         <input type="text" id="cfgOutName" value="rezultat.xlsx">
       </div>
     </div>
-    <div style="margin-top:14px">
-      <label class="f">Листове в изходния файл</label>
-      <div class="cbrow">
-        <label><input type="checkbox" checked disabled> Обобщение по служители</label>
-        <label><input type="checkbox" id="shDays" checked> По дни (с бонусите)</label>
-        <label><input type="checkbox" id="shOps" checked> Операции (пълен детайл)</label>
-        <label><input type="checkbox" id="shAcc" checked> Счетоводство (изчистен Файл 2)</label>
+  </div>
+
+  <div class="card">
+    <details class="adv">
+      <summary>Разширени настройки</summary>
+
+      <h3>Бонус и заработка</h3>
+      <div class="grid">
+        <div>
+          <label class="f">Ниво на изчисление на бонуса</label>
+          <select id="cfgLevel">
+            <option value="day" selected>На ден (както при ръчното изчисление)</option>
+            <option value="operation">На операция</option>
+            <option value="both">И двете (възпроизвежда вътрешния инструмент)</option>
+          </select>
+          <div class="note" id="noteBoth">Внимание: &bdquo;и двете&ldquo; брои едно преизпълнение два пъти &mdash; само за сравнение.</div>
+        </div>
+        <div>
+          <label class="f">Дневна заработка от <span class="hint">операциите дават 3 знака точност</span></label>
+          <select id="cfgSource">
+            <option value="operations" selected>Сумата на операциите (по-прецизно)</option>
+            <option value="report">Дневните суми на отчета (както при ръчното)</option>
+          </select>
+        </div>
+        <div>
+          <label class="f">Закръгляване на сумите (лв)</label>
+          <select id="cfgRound">
+            <option value="-1" selected>Без закръгляване (максимална точност)</option>
+            <option value="2">2 знака (стотинки)</option>
+            <option value="3">3 знака</option>
+            <option value="4">4 знака</option>
+          </select>
+        </div>
       </div>
-    </div>
+
+      <h3>Сверки и толеранси</h3>
+      <div class="grid">
+        <div>
+          <label class="f">Толеранс при сверка на % </label>
+          <input type="number" id="cfgTolPct" value="0.05" step="0.01" min="0">
+        </div>
+        <div>
+          <label class="f">Толеранс при сверка на суми (лв)</label>
+          <input type="number" id="cfgTolEarn" value="0.02" step="0.01" min="0">
+        </div>
+        <div>
+          <label class="f">Мащаб на заработката по операции</label>
+          <select id="cfgScale">
+            <option value="auto" selected>Автоматично засичане</option>
+            <option value="1000">&times;1000 (дели на 1000)</option>
+            <option value="1">&times;1 (без корекция)</option>
+          </select>
+        </div>
+      </div>
+
+      <h3>Присъствия (Файл 3)</h3>
+      <div class="grid">
+        <div>
+          <label class="f">Знаци след запетаята за раб. дни <span class="hint">напр. 2 &rarr; 21,44 дни</span></label>
+          <input type="number" id="cfgAttDec" value="2" step="1" min="0" max="6">
+        </div>
+        <div>
+          <label class="f">Ограничение на минути на ден <span class="hint">0 = без ограничение</span></label>
+          <input type="number" id="cfgCap" value="0" step="10" min="0">
+        </div>
+        <div>
+          <label class="f">Предупреждение при ден над (минути) <span class="hint">0 = изключено</span></label>
+          <input type="number" id="cfgMaxDay" value="720" step="10" min="0">
+        </div>
+        <div>
+          <label class="f">Толеранс: присъствени дни срещу ведомост (дни)</label>
+          <input type="number" id="cfgDayTol" value="1" step="1" min="0">
+        </div>
+      </div>
+      <div class="cbrow">
+        <label><input type="checkbox" id="cfgSat" checked> Съботите се включват в сумата</label>
+        <label><input type="checkbox" id="cfgSun" checked> Неделите се включват в сумата</label>
+        <label><input type="checkbox" id="cfgChkProd" checked> Проверка: заработка без присъствие</label>
+        <label><input type="checkbox" id="cfgChkAcc" checked> Проверка: присъствени дни срещу ведомост</label>
+      </div>
+
+      <h3>Изходен файл</h3>
+      <div class="cbrow">
+        <label><input type="checkbox" checked disabled> За заплати</label>
+        <label><input type="checkbox" id="shSummary" checked> Обобщение</label>
+        <label><input type="checkbox" id="shDays" checked> По дни</label>
+        <label><input type="checkbox" id="shOps" checked> Операции</label>
+        <label><input type="checkbox" id="shAcc" checked> Счетоводство</label>
+        <label><input type="checkbox" id="shAtt" checked> Присъствие (матрица)</label>
+        <label><input type="checkbox" id="cfgStSheet"> Лист &bdquo;Статус&ldquo; в резултата</label>
+      </div>
+      <div class="cbrow">
+        <label><input type="checkbox" id="cfgHlWeekend" checked> Оцветявай събота (жълто) и неделя (сиво)</label>
+        <label><input type="checkbox" id="cfgBrigCol" checked> Оцветявай редовете по бригади</label>
+      </div>
+    </details>
   </div>
 
   <div class="card" style="text-align:center">
     <button class="go" id="btnGo" disabled>Обработи файловете</button>
-    <div class="hint" style="margin-top:8px">Ще бъдат изтеглени два файла: резултат (.xlsx) и статус (.txt/.json).</div>
+    <div class="hint" style="margin-top:8px">Ще бъдат изтеглени два файла: резултат (.xlsx) и статус (.xlsx/.txt/.json).</div>
   </div>
 
   <div class="card" id="resultCard" style="display:none">
     <h2>Резултат</h2>
     <div id="statusLine"></div>
     <div style="margin:10px 0">
-      <button class="dl" id="btnDlResult">&#8681; Изтегли резултата отново</button>
-      <button class="dl" id="btnDlStatus">&#8681; Изтегли статус файла отново</button>
+      <button class="dl" id="btnDlResult">&#8681; Резултатът отново</button>
+      <button class="dl" id="btnDlStatus">&#8681; Статус файлът отново</button>
     </div>
     <div id="infoBox"></div>
     <div id="warnBox"></div>
     <div id="errBox"></div>
-    <details id="prevBox" open><summary>Преглед: обобщение по служители</summary><div id="prevTable"></div></details>
+    <details id="prevBox" open><summary>Преглед: лист &bdquo;За заплати&ldquo;</summary><div id="prevTable"></div></details>
   </div>
 
-  <div class="hint" style="text-align:center">Инструментът работи изцяло клиентски и може да се хоства на всеки статичен хостинг (GitHub Pages, Cloudflare Pages, Netlify и др.).</div>
+  <div class="hint" style="text-align:center">Инструментът работи изцяло клиентски и може да се хоства на всеки статичен хостинг.</div>
 </div>
 <script>
 (function () {
   'use strict';
   const $ = id => document.getElementById(id);
-  const buffers = { f1: null, f2: null };
-  let lastOutputs = null;
+  const buffers = { f1: null, f2: null, f3: null };
+  let last = null;
 
-  function hookFile(inputId, nameId, dropId, key) {
-    $(inputId).addEventListener('change', async e => {
+  function hookFile(n) {
+    $('file' + n).addEventListener('change', async e => {
       const f = e.target.files[0];
-      if (!f) { buffers[key] = null; $(nameId).textContent = ''; $(dropId).classList.remove('ok'); }
+      const key = 'f' + n;
+      if (!f) { buffers[key] = null; $('fname' + n).textContent = ''; $('drop' + n).classList.remove('ok'); }
       else {
         buffers[key] = { name: f.name, data: await f.arrayBuffer() };
-        $(nameId).textContent = '✓ ' + f.name;
-        $(dropId).classList.add('ok');
+        $('fname' + n).textContent = '✓ ' + f.name;
+        $('drop' + n).classList.add('ok');
       }
       $('btnGo').disabled = !buffers.f1;
     });
   }
-  hookFile('file1', 'fname1', 'drop1', 'f1');
-  hookFile('file2', 'fname2', 'drop2', 'f2');
-
+  [1, 2, 3].forEach(hookFile);
   $('cfgLevel').addEventListener('change', () => {
     $('noteBoth').style.display = $('cfgLevel').value === 'both' ? 'block' : 'none';
   });
@@ -200,27 +269,28 @@
     const wb = XLSX.read(buf, { type: 'array' });
     return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: null });
   }
+  const num = id => parseFloat($(id).value);
 
   function collectConfig() {
     return {
-      bonusThresholdPct: parseFloat($('cfgThreshold').value) || 0,
-      bonusRatePct: parseFloat($('cfgRate').value) || 0,
-      bonusLevel: $('cfgLevel').value,
-      dayEarningsSource: $('cfgSource').value,
+      bonusThresholdPct: num('cfgThreshold'), bonusRatePct: num('cfgRate'),
+      bonusLevel: $('cfgLevel').value, dayEarningsSource: $('cfgSource').value,
       roundDecimals: parseInt($('cfgRound').value, 10),
-      mismatchTolerancePct: parseFloat($('cfgTolPct').value) || 0,
-      earningsTolerance: parseFloat($('cfgTolEarn').value) || 0
+      mismatchTolerancePct: num('cfgTolPct'), earningsTolerance: num('cfgTolEarn'),
+      scaleOverride: $('cfgScale').value,
+      fullDayMinutes: num('cfgFullDay'), attendanceDecimals: parseInt($('cfgAttDec').value, 10),
+      includeSaturday: $('cfgSat').checked, includeSunday: $('cfgSun').checked,
+      capDayMinutes: num('cfgCap'), maxDayMinutes: num('cfgMaxDay'),
+      checkAttendanceVsProduction: $('cfgChkProd').checked,
+      checkAttendanceVsAccounting: $('cfgChkAcc').checked,
+      attendanceDayTolerance: num('cfgDayTol'),
+      highlightWeekend: $('cfgHlWeekend').checked, brigadeColors: $('cfgBrigCol').checked,
+      includeStatusSheet: $('cfgStSheet').checked
     };
   }
-
-  function buildWorkbook(result) {
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(result.summary), 'Обобщение');
-    if ($('shDays').checked) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(result.days), 'По дни');
-    if ($('shOps').checked) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(result.ops), 'Операции');
-    if ($('shAcc').checked && result.accounting.length)
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(result.accounting), 'Счетоводство');
-    return wb;
+  function sheetToggles() {
+    return { salary: true, summary: $('shSummary').checked, days: $('shDays').checked,
+             ops: $('shOps').checked, accounting: $('shAcc').checked, attendance: $('shAtt').checked };
   }
 
   function downloadBlob(name, mime, content) {
@@ -230,57 +300,70 @@
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   }
+  const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+  async function downloadResult() {
+    if (!last || !last.result) return;
+    const wb = PayrollCore.buildWorkbook(ExcelJS, last.result, last.log, last.cfg, last.sheets);
+    downloadBlob(last.outName, XLSX_MIME, await wb.xlsx.writeBuffer());
+  }
+  async function downloadStatus() {
+    if (!last) return;
+    if (last.fmt === 'xlsx') {
+      const wb = PayrollCore.buildStatusWorkbook(ExcelJS, last.log);
+      downloadBlob(last.statusName, XLSX_MIME, await wb.xlsx.writeBuffer());
+    } else {
+      downloadBlob(last.statusName, last.fmt === 'json' ? 'application/json' : 'text/plain;charset=utf-8',
+        last.fmt === 'json' ? JSON.stringify({ ...last.log, rows: PayrollCore.statusRows(last.log) }, null, 2)
+                            : PayrollCore.statusText(last.log));
+    }
+  }
 
   function renderList(el, title, items, cls) {
     if (!items.length) { el.innerHTML = ''; return; }
     el.innerHTML = '<details' + (cls === 'status-err' ? ' open' : '') + '><summary class="' + cls + '">' +
       title + ' (' + items.length + ')</summary><ul class="msgs">' +
-      items.map(m => '<li>' + m.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</li>').join('') +
+      items.map(m => '<li>' + String(m).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</li>').join('') +
       '</ul></details>';
   }
-
   function renderPreview(rows) {
     if (!rows || !rows.length) { $('prevTable').innerHTML = ''; return; }
-    const cols = Object.keys(rows[0]);
+    const cols = [];
+    for (const r of rows) for (const k of Object.keys(r)) if (!cols.includes(k)) cols.push(k);
     let h = '<table class="prev"><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr>';
-    for (const r of rows.slice(0, 30)) {
-      h += '<tr>' + cols.map(c => '<td>' + (r[c] == null ? '' : r[c]) + '</td>').join('') + '</tr>';
-    }
+    for (const r of rows.slice(0, 40)) h += '<tr>' + cols.map(c => '<td>' + (r[c] == null ? '' : r[c]) + '</td>').join('') + '</tr>';
     $('prevTable').innerHTML = h + '</table>';
   }
 
   $('btnGo').addEventListener('click', () => {
     const btn = $('btnGo');
     btn.disabled = true; btn.textContent = 'Обработва се...';
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         const cfg = collectConfig();
-        const aoa1 = toAoa(buffers.f1.data);
-        const aoa2 = buffers.f2 ? toAoa(buffers.f2.data) : null;
-        const { result, log } = PayrollCore.process(aoa1, aoa2, cfg);
-        log.inputFiles = { productivity: buffers.f1.name, accounting: buffers.f2 ? buffers.f2.name : null };
-
+        const { result, log } = PayrollCore.process(
+          toAoa(buffers.f1.data),
+          buffers.f2 ? toAoa(buffers.f2.data) : null,
+          buffers.f3 ? toAoa(buffers.f3.data) : null,
+          cfg);
+        log.inputFiles = { productivity: buffers.f1.name,
+          accounting: buffers.f2 ? buffers.f2.name : null,
+          attendance: buffers.f3 ? buffers.f3.name : null };
         const fmt = $('cfgStatusFmt').value;
-        const outName = ($('cfgOutName').value || 'rezultat.xlsx').replace(/\.xlsx$/i, '') + '.xlsx';
-        const statusName = outName.replace(/\.xlsx$/i, '') + '_status.' + fmt;
-        const statusContent = fmt === 'json'
-          ? JSON.stringify(log, null, 2)
-          : PayrollCore.statusText(log);
-
-        lastOutputs = { result, log, outName, statusName, statusContent, fmt };
+        const outName = ($('cfgOutName').value || 'rezultat').replace(/\.xlsx$/i, '') + '.xlsx';
+        last = { result, log, cfg, sheets: sheetToggles(), fmt, outName,
+                 statusName: outName.replace(/\.xlsx$/i, '') + '_status.' + fmt };
 
         $('resultCard').style.display = 'block';
-        const cls = log.status === 'ERROR' ? 'status-err' : (log.warnings.length ? 'status-warn' : 'status-ok');
+        const cls = log.status === 'ERROR' ? 'status-err' : (/WARNINGS|ERRORS/.test(log.status) ? 'status-warn' : 'status-ok');
         $('statusLine').innerHTML = 'Статус: <span class="' + cls + '">' + log.status + '</span>' +
-          (log.status !== 'ERROR' ? ' &mdash; резултатът и статус файлът се изтеглят автоматично.' : ' &mdash; резултатен файл не е създаден; вижте грешките по-долу.');
+          (log.status !== 'ERROR' ? ' &mdash; резултатът и статус файлът се изтеглят автоматично.' : ' &mdash; вижте грешките по-долу.');
         renderList($('infoBox'), 'Информация', log.info, 'status-ok');
         renderList($('warnBox'), 'Предупреждения', log.warnings, 'status-warn');
         renderList($('errBox'), 'Грешки', log.errors, 'status-err');
-        renderPreview(result ? result.summary : null);
-
-        if (result) XLSX.writeFile(buildWorkbook(result), outName);
-        setTimeout(() => downloadBlob(statusName,
-          fmt === 'json' ? 'application/json' : 'text/plain;charset=utf-8', statusContent), 600);
+        renderPreview(result ? result.salary : null);
+        if (result) await downloadResult();
+        setTimeout(downloadStatus, 700);
         $('resultCard').scrollIntoView({ behavior: 'smooth' });
       } catch (err) {
         $('resultCard').style.display = 'block';
@@ -290,14 +373,8 @@
       }
     }, 30);
   });
-
-  $('btnDlResult').addEventListener('click', () => {
-    if (lastOutputs && lastOutputs.result) XLSX.writeFile(buildWorkbook(lastOutputs.result), lastOutputs.outName);
-  });
-  $('btnDlStatus').addEventListener('click', () => {
-    if (lastOutputs) downloadBlob(lastOutputs.statusName,
-      lastOutputs.fmt === 'json' ? 'application/json' : 'text/plain;charset=utf-8', lastOutputs.statusContent);
-  });
+  $('btnDlResult').addEventListener('click', downloadResult);
+  $('btnDlStatus').addEventListener('click', downloadStatus);
 })();
 </script>
 </body>
