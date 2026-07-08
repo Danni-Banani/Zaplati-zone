@@ -238,6 +238,35 @@
     <details id="prevBox" open><summary>Преглед: лист &bdquo;За заплати&ldquo;</summary><div id="prevTable"></div></details>
   </div>
 
+
+  <div class="card" id="feedbackCard">
+    <h2>Обратна връзка</h2>
+    <p style="font-size:14px;margin:4px 0 10px">Ако нещо не работи, изчислено е грешно или имате идея за подобрение &mdash; опишете го тук. Съобщението пристига директно на имейла на разработчика.</p>
+    <ol class="steps" style="font-size:13px">
+      <li>Опишете какво правехте, какво очаквахте и какво се случи вместо това.</li>
+      <li>По възможност прикачете <b>екранна снимка</b> на проблема и <b>статус файла</b> от обработката &mdash; те помагат най-много.</li>
+      <li>Натиснете големия бутон. При първото изпращане услугата може да поиска еднократно потвърждение &bdquo;I'm not a robot&ldquo;.</li>
+    </ol>
+    <form action="https://formsubmit.co/danielignatov1402@gmail.com" method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="_subject" value="Zaplati-zone: обратна връзка">
+      <input type="hidden" name="_template" value="table">
+      <input type="hidden" name="_next" id="fbNext" value="">
+      <div class="grid">
+        <div><label class="f">Вашето име <span class="hint">(по желание)</span></label><input type="text" name="Име"></div>
+        <div><label class="f">Имейл за отговор <span class="hint">(по желание)</span></label><input type="email" name="Имейл за отговор"></div>
+      </div>
+      <label class="f" style="margin-top:12px">Съобщение *</label>
+      <textarea name="Съобщение" required rows="5" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;font-family:inherit" placeholder="Опишете проблема или предложението..."></textarea>
+      <label class="f" style="margin-top:12px">Прикачени файлове <span class="hint">снимки, статус файл и др. &mdash; може повече от един</span></label>
+      <input type="file" name="attachment" multiple>
+      <div class="hint" style="margin-top:6px">Забележка: за разлика от обработката на отчетите (която не напуска компютъра), тази форма изпраща съобщението и прикачените файлове по имейл през услугата FormSubmit. Не прикачвайте файлове с лични данни, освен ако не е необходимо.</div>
+      <div style="text-align:center;margin-top:16px">
+        <button class="go" type="submit">&#9993; Изпрати обратна връзка</button>
+      </div>
+    </form>
+    <div id="fbThanks" style="display:none;margin-top:10px;text-align:center;font-size:15px" class="status-ok">&#10003; Благодарим! Съобщението е изпратено успешно.</div>
+  </div>
+
   <div class="hint" style="text-align:center">Инструментът работи изцяло клиентски и може да се хоства на всеки статичен хостинг.</div>
 </div>
 <script>
@@ -375,6 +404,13 @@
   });
   $('btnDlResult').addEventListener('click', downloadResult);
   $('btnDlStatus').addEventListener('click', downloadStatus);
+
+  // feedback form: return-URL + thank-you banner
+  $('fbNext').value = location.origin + location.pathname + '?fb=ok#feedbackCard';
+  if (new URLSearchParams(location.search).get('fb') === 'ok') {
+    $('fbThanks').style.display = 'block';
+    setTimeout(() => document.getElementById('feedbackCard').scrollIntoView(), 100);
+  }
 })();
 </script>
 </body>
